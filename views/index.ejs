@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>To-Do List</title>
+  <style>
+    /* Add your CSS styles here */
+  </style>
+</head>
+<body>
+  <h1><%= formattedDate %></h1>
+  <div id="box">
+    <form action="/add-task" method="POST">
+      <input type="text" name="task" placeholder="New Item" required id="newTask">
+      <button id="submit" type="submit">+</button>
+    </form>
+    <ul>
+      <% tasks.forEach((task, index) => { %>
+        <li>
+            <input type="checkbox" id="task-checkbox-<%= index %>" class="task-checkbox"
+            <% if (task.completed) { %>checked<% } %>
+            onchange="updateTask(<%= index %>, this.checked)"
+          >
+          <label for="task-checkbox-<%= index %>" class="<%= task.completed ? 'completed' : '' %>"><%= task.text %></label>
+          <button id="delete"  onclick="deleteTask(<%= index %>)">🗑️</button>
+        </li>
+      <% }); %>
+    </ul>
+  </div>
+
+  <script>
+    // JavaScript functions
+    function updateTask(index, completed) {
+  fetch("/update-task", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ index, completed }),
+  });
+
+  // Store the updated task completion status in localStorage
+  localStorage.setItem(`task-${index}`, completed ? "completed" : "incomplete");
+}
+
+function deleteTask(index) {
+  fetch("/delete-task", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ index }),
+  })
+    .then(response => {
+      if (response.ok) {
+        // Remove the task from the client-side list immediately
+        const taskItem = document.querySelector(`li:nth-child(${index + 1})`);
+        if (taskItem) {
+          taskItem.remove();
+        }
+      }
+    })
+    .catch(error => {
+      console.error(error);
+    });
+
+  // Remove the task from localStorage when deleted
+  localStorage.removeItem(`task-${index}`);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  tasks.forEach((_, index) => {
+    const status = localStorage.getItem(`task-${index}`);
+    if (status === "completed") {
+      // Restore the checked state for completed tasks
+      const checkbox = document.getElementById(`task-checkbox-${index}`);
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    }
+  });
+});
+  </script>
+</body>
+</html>
